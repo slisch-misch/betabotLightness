@@ -2,7 +2,6 @@
 using Dapper.Contrib.Extensions;
 namespace betabotLightness.DB.Entity;
 
-
 [Table("Users")]
 public class User
 {

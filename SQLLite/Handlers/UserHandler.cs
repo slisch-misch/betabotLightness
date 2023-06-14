@@ -1,10 +1,8 @@
 ﻿using System.Collections.Concurrent;
-using System.Text;
 using betabotLightness.DB.Entity;
 using betabotLightness.DB.Repository;
 using betabotLightness.Models;
 using betabotLightness.Models.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
 
 namespace betabotLightness.Handlers;
 
