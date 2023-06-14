@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using betabotLightness.DB.Entity;
 using betabotLightness.DB.Repository;
+using betabotLightness.Extensions;
 using betabotLightness.Models;
 using betabotLightness.Models.Enums;
 using Telegram.Bot.Types.Enums;
@@ -205,7 +206,7 @@ internal class AdminHandler
         var years = (DateTime.Now.Year - user.Birthday.Year);
 
         var mess = $"🥷*ФИО*: {user.LastName} {user.FirstName} {user.MidName}\n";
-        mess+= $"💰*Тариф*:";        
+        mess+= $"💰*Тариф*: {user.Tariff.GetDisplayName()}";        
         if (user.Tariff == Tariff.Light) mess += " Лайт";
         else if (user.Tariff == Tariff.Standart) mess += " Стандарт";
         else if (user.Tariff == Tariff.Max) mess += " Максимум";
