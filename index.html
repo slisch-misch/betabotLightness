@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+</head>
+<style>
+    td, th{
+        font-size: 35px;
+        padding: 10px;
+        border: 3px solid black;
+    }
+
+    th {
+        text-align: center;
+    }
+
+    tr td:nth-child(1) {
+        text-align: center;
+    }
+
+
+    .table {
+        max-width: 1700px;
+        margin: 0 auto;
+        border-collapse: collapse;
+        padding: 3.5px;
+        table-layout: fixed;
+        font-size: 21px;
+        color: #36332EFF;
+        border: 1px solid black;
+    }
+
+    .first-header {
+        width: 200px;
+    }
+    .second-header {
+        width: 800px;
+    }
+    .third-header {
+        width: 600px;
+    }
+
+    .noBorder td {
+        border: none;
+    }
+
+    .noBorder {
+        border: 3px solid black;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .number-of-columns {
+        text-align: center;
+    }
+
+    .second-table-first-header {
+        width: 300px;
+    }
+
+    .second-table-second-header {
+        width: 800px;
+    }
+
+    .second-table-third-header {
+        width: 100px;
+    }
+
+    .second-table-fourth-header {
+        width: 100px;
+    }
+
+    .second-table-fifth-header {
+        width: 300px;
+    }
+
+    .flex-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 50px;
+    }
+
+    .flex-header div {
+        font-size: 30px;
+    }
+
+    .container {
+        max-width: 1650px;
+        margin: 0 auto;
+    }
+
+    h1, h2 {
+        text-align: center;
+        margin: 0;
+    }
+
+    .ogrn div {
+        border: 3px solid black;
+        font-size: 45px;
+        padding: 10px 0;
+        height: 50px;
+    }
+</style>
+<body>
+<div class="container" style="padding-bottom: 100px">
+    <h1 style="font-size: 50px;">Выписка</h1>
+    <h2 style="font-size: 40px; padding-top: 10px">из Единого государственного реестра юридичкеских лиц</h2>
+    <div class="flex-header" style="margin-top: 100px">
+        <div>
+            <div style="text-align: center; border-bottom: 1px solid black">
+                {1}
+            </div>
+            <div>
+                дата формирования выписки
+            </div>
+        </div>
+    </div>
+    <div style="margin: 80px auto; max-width: 1700px; text-align: center;">
+        <div style="font-size: 50px">
+            {2}
+        </div>
+        <div style="border-top: 1px solid black; font-size: 25px">
+            полное наименование юридического лица
+        </div>
+    </div>
+    <div style="display: flex; justify-content: center; margin-bottom: 70px">
+        <div style="vertical-align: middle; padding-top: 13px; font-size: 50px; margin-right: 10px; font-weight: bold">
+            ОГРН
+        </div>
+        <div class="ogrn" style="display: flex;">
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+            <div>{4}</div>
+        </div>
+    </div>
+    <table class="table">
+        <thead>
+        <tr class="header">
+            <th class="first-header">№ п/п</th>
+            <th class="second-header">Наименование показателя</th>
+            <th class="third-header">Значение показателя</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr class="number-of-columns">
+            <td>1</td>
+            <td>2</td>
+            <td>3</td>
+        </tr>
+        <tr class="noBorder">
+            <td></td>
+            <td>
+                Наименование
+            </td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>Наименование/ФИО владельца:</td>
+            <td>{2}</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>ИНН:</td>
+            <td>{3}</td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>ОГРН:</td>
+            <td>{4}</td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td>Правовой статус:</td>
+            <td>{5}</td>
+        </tr>
+        <tr>
+            <td>6</td>
+            <td>Дата регистрации:</td>
+            <td>{6}</td>
+        </tr>
+        <tr>
+            <td>7</td>
+            <td>Статус:</td>
+            <td>{7}</td>
+        </tr>
+        <tr>
+            <td>8</td>
+            <td>Адрес:</td>
+            <td>{8}</td>
+        </tr>
+        <tr>
+            <td>9</td>
+            <td>Основной вид деятельности:</td>
+            <td>{9}</td>
+        </tr>
+        <tr>
+            <td>10</td>
+            <td>Зарегистрирован недавно:</td>
+            <td>{10}</td>
+        </tr>
+        <tr>
+            <td>11</td>
+            <td>Капитал более 50 тыс.:</td>
+            <td>{11}</td>
+        </tr>
+        <tr>
+            <td>12</td>
+            <td>Позитивные качества:</td>
+            <td>{12}</td>
+        </tr>
+        <tr>
+            <td>13</td>
+            <td>Негативные качества:</td>
+            <td>{13}</td>
+        </tr>
+        </tbody>
+    </table>
+    <table class="table" style="margin-top: 30px">
+        <h1 style="text-align: center; font-size: 45px; padding-top: 70px">Расчёт экономических коэффициентов</h1>
+        <thead>
+        <tr>
+            <th class="second-table-first-header">
+                № п/п
+            </th>
+            <th class="second-table-second-header">
+                Наименование показателя
+            </th>
+            <th class="second-table-third-header">
+                Год
+            </th>
+            <th class="second-table-fourth-header">
+                Год
+            </th>
+            <th class="second-table-fifth-header">
+                Итоговые данные
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td></td>
+            <td></td>
+            <td>{14}</td>
+            <td>{15}</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>
+                Коэффициент текущей ликвидности
+            </td>
+            <td>{22}</td>
+            <td>{16}</td>
+            <td>{28}</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>
+                Коэффициент автономии
+            </td>
+            <td>{23}</td>
+            <td>{17}</td>
+            <td>{29}</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>
+                Рентабельность продаж
+            </td>
+            <td>{24}</td>
+            <td>{18}</td>
+            <td>{30}</td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>
+                Рентабельность активов
+            </td>
+            <td>{25}</td>
+            <td>{19}</td>
+            <td>{31}</td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td>
+                Коэффициент быстрой ликвидности
+            </td>
+            <td>{26}</td>
+            <td>{20}</td>
+            <td>{32}</td>
+        </tr>
+        <tr>
+            <td>6</td>
+            <td>
+                Коэффициент абсолютной ликвидности
+            </td>
+            <td>{27}</td>
+            <td>{21}</td>
+            <td>{33}</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+<link rel="stylesheet" href="style.css" />
+</html>
