@@ -1,13 +1,12 @@
 ﻿using System.Collections.Concurrent;
-using System.Text;
-using scoring_counter_agent_bot.DB.Entity;
-using scoring_counter_agent_bot.DB.Repository;
-using scoring_counter_agent_bot.Models.Enums;
-using scoring_counter_agent_bot.Parser;
+using betabotLightness.DB.Entity;
+using betabotLightness.DB.Repository;
+using betabotLightness.Models;
+using betabotLightness.Models.Enums;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace scoring_counter_agent_bot.Handlers;
+namespace betabotLightness.Handlers;
 
 /* Класс взаимодействий админ-пользователя
  * 
@@ -15,13 +14,14 @@ namespace scoring_counter_agent_bot.Handlers;
  */
 internal class AdminHandler
 {
+    private const int MinNumberLinePersonCard = 5;
+
     private readonly ConcurrentDictionary<long, LastCommand> _lastCommands = new();
 
     private readonly ReplyKeyboardMarkup _replyKeyboardMarkup =
         new(new[]
         {
-            new KeyboardButton[] { "Проверить контрагента", "Проверить журнал" },
-            new KeyboardButton[] { "Создать пользователя", "Создать администратора" }
+            new KeyboardButton[] { "Создать пользователя", "Создать администратора", "Показать карточку пользователя" }
         })
         {
             ResizeKeyboard = true
@@ -29,13 +29,13 @@ internal class AdminHandler
 
     public async Task<CommandResponse> AuthorizeUser(long chatId, User user)
     {
-        using var rep = new Repository();
+        using var rep = new UserRepository();
         await rep.UpdateUserChatIdByUserIdAsync(chatId, user.Id);
 
         return new CommandResponse
         {
             TextMessage =
-                $"Здравствуйте, {user.FirstName} {user.MidName}, Вы можете проверить контрагента, добавить пользователя или посмотреть чей-то журнал, для этого нажмите соответствующую кнопку.",
+                $"Здравствуйте, {user.FirstName} {user.MidName}, вы можете добавить пользователя, для этого нажмите соответствующую кнопку. Чтобы отправить сообщение всем введите /message и введите сообщение, чтобы оно было с отложенной отправкой выберите \"Отправить позже\" и выберите дату+время😎",
             ReplyKeyboardMarkup = _replyKeyboardMarkup
         };
         //1 - Вернуть сообщение
@@ -56,6 +56,11 @@ internal class AdminHandler
             return commandResponse;
         }
 
+        if (textMessage.StartsWith("/message"))
+        {
+            return await HandleMessageCommandAsync(textMessage, user);
+        }
+
         ///Проверяем последнюю команду
         if (_lastCommands.TryGetValue(user.ChatId.Value, out var last))
         {
@@ -66,22 +71,14 @@ internal class AdminHandler
                     commandResponse = await CreateUser(textMessage);
                     _lastCommands.TryRemove(user.ChatId.Value, out _);
                     return commandResponse;
-                    break;
                 case LastCommand.CreateAdmin:
                     commandResponse = await CreateAdmin(textMessage);
                     _lastCommands.TryRemove(user.ChatId.Value, out _);
-                    return commandResponse;
-                    break;
-                case LastCommand.CheckJournalByUser:
-                    commandResponse = await CheckJournalByUser(textMessage);
+                    return commandResponse;       
+                case LastCommand.ShowClientCard:
+                    commandResponse = await ShowClientCard(textMessage);
                     _lastCommands.TryRemove(user.ChatId.Value, out _);
                     return commandResponse;
-                    break;
-                case LastCommand.CheckCounterAgent:
-                    commandResponse = await CheckCounterAgent(textMessage);
-                    _lastCommands.TryRemove(user.ChatId.Value, out _);
-                    return commandResponse;
-                    break;
             }
         }
 
@@ -92,25 +89,19 @@ internal class AdminHandler
                 _lastCommands.TryAdd(user.ChatId.Value, LastCommand.CreateUser);
                 return new CommandResponse
                 {
-                    TextMessage = "Введите полное ФИО пользователя"
+                    TextMessage = "Введите данные клиента в формате: \nБыков Никита Андреевич\n65кг\n172см\n27.06.2000\n1\nТарифы записываются в формате 1, 2 или 3 по повышению стоимости"
                 };
             case "Создать администратора":
                 _lastCommands.TryAdd(user.ChatId.Value, LastCommand.CreateAdmin);
                 return new CommandResponse
                 {
-                    TextMessage = "Введите полное ФИО пользователя"
+                    TextMessage = "Введите данные администратора в формате: \nБыков Никита Андреевич"
                 };
-            case "Проверить журнал":
-                _lastCommands.TryAdd(user.ChatId.Value, LastCommand.CheckJournalByUser);
+            case "Показать карточку пользователя":
+                _lastCommands.TryAdd(user.ChatId.Value, LastCommand.ShowClientCard);
                 return new CommandResponse
                 {
-                    TextMessage = "Введите полное ФИО пользователя"
-                };
-            case "Проверить контрагента":
-                _lastCommands.TryAdd(user.ChatId.Value, LastCommand.CheckCounterAgent);
-                return new CommandResponse
-                {
-                    TextMessage = "Введите ИНН/ОГРН контрагента"
+                    TextMessage = "Введите ФИО пользователя в формате: \nБыков Никита Андреевич"
                 };
             default:
                 throw new Exception("Нет такой команды");
@@ -120,18 +111,37 @@ internal class AdminHandler
     //CreateUser -> HandleCommandAsync -> Program.cs
     private async Task<CommandResponse> CreateUser(string message)
     {
-        var name = message.Split(' ');
-        if (name.Length < 2) throw new Exception("Введите полное имя:");
+        var personCard = message.Split("\n");
+        if (personCard.Length < MinNumberLinePersonCard) 
+            throw new Exception("Введены некорректные данные");
+        var name = personCard[0].Split(" ");
 
         var midName = string.Empty;
         for (var i = 2; i < name.Length; i++)
             midName += name[i] + " ";
 
-        using var rep = new Repository();
+
+        if (!int.TryParse(personCard[1][..^2], out var weight))
+            throw new Exception("Введен некорректный вес");
+        if (!int.TryParse(personCard[2][..^2], out var height))
+            throw new Exception("Введен некорректные рост");
+        if (!DateTime.TryParse(personCard[3], out var dateBirth))
+            throw new Exception("Введена некорректная дата рождения");
+        if (!int.TryParse(personCard[4], out var tariff))
+            throw new Exception("Введен некорректный тариф");
+
+        using var rep = new UserRepository();
         var generatedToken = Guid.NewGuid().ToString("N");
         var user = new User
         {
-            FirstName = name[1], LastName = name[0], MidName = midName.TrimEnd(' '), AdminRights = false,
+            FirstName = name[1],
+            LastName = name[0],
+            MidName = midName.TrimEnd(' '),
+            Weight = weight,
+            Height = height,
+            Birthday = dateBirth,
+            Role = Role.Client,
+            Tariff = (Tariff)tariff,
             Token = generatedToken
         };
         await rep.InsertUsersAsync(user);
@@ -145,80 +155,97 @@ internal class AdminHandler
 
     private async Task<CommandResponse> CreateAdmin(string message)
     {
-        var name = message.Split(' ');
-        if (name.Length < 2) throw new Exception("Введите полное имя");
+        var personCard = message.Split(' ');
+        if (personCard.Length < 2)
+            throw new Exception("Введены некорректные данные");
 
         var midName = string.Empty;
-        for (var i = 2; i < name.Length; i++)
-            midName += name[i] + " ";
+        for (var i = 2; i < personCard.Length; i++)
+            midName += personCard[i] + " ";
 
-        using var rep = new Repository();
+        using var rep = new UserRepository();
         var generatedToken = Guid.NewGuid().ToString("N");
         var user = new User
         {
-            FirstName = name[1], LastName = name[0], MidName = midName.TrimEnd(' '), AdminRights = true,
+            FirstName = personCard[1],
+            LastName = personCard[0],
+            MidName = midName.TrimEnd(' '),
+            Role = Role.Admin,
             Token = generatedToken
         };
-        await rep.InsertUsersAsync(user);
 
-        var commandResponse = new CommandResponse();
-        commandResponse.TextMessage = "|| " + generatedToken + " ||";
-        commandResponse.ParseMode = ParseMode.MarkdownV2;
-        commandResponse.ReplyKeyboardMarkup = _replyKeyboardMarkup;
+        await rep.InsertUsersAsync(user);
+        var commandResponse = new CommandResponse
+        {
+            TextMessage = "|| " + generatedToken + " ||",
+            ParseMode = ParseMode.MarkdownV2,
+            ReplyKeyboardMarkup = _replyKeyboardMarkup
+        };
         return commandResponse;
     }
 
-    private async Task<CommandResponse> CheckJournalByUser(string message)
+    private async Task<CommandResponse> ShowClientCard(string message)
     {
-        using var rep = new Repository();
-        var name = message.Split(' ');
-        if (name.Length < 2) throw new Exception("Введите полное имя");
+        var fullName = message.Split(' ');
+        if (fullName.Length < 2)
+            throw new Exception("Введены некорректные данные");
 
         var midName = string.Empty;
-        for (var i = 2; i < name.Length; i++)
-            midName += name[i] + " ";
-        var id = await rep.GetUserIdByNames(name[1], name[0], midName.Trim());
+        for (var i = 2; i < fullName.Length; i++)
+            midName += fullName[i] + " ";
 
-        if (id == 0) throw new Exception("Нет такого пользователя");
+        using var userRep = new UserRepository();
 
-        var commandResponse = new CommandResponse();
-        var result = await rep.GetJournalForUserById(id);
-        if (result.Any())
+        var user = await userRep.GetUserByNamesAsync(fullName[1], fullName[0], midName);
+        if(user == null)
         {
-            var notesResulting = new StringBuilder();
 
-            foreach (var note in result)
-                notesResulting =
-                    notesResulting.Append(
-                        $"Название: {note.Name}, ИНН: {note.Inn}, ОГРН: {note.OGRN}, Результат: {note.CheckResult}, дата проверки: {note.CheckDate} \n");
-            commandResponse.TextMessage = notesResulting.ToString();
-            commandResponse.ReplyKeyboardMarkup = _replyKeyboardMarkup;
-            return commandResponse;
         }
 
-        commandResponse.TextMessage = "Пользователь не выполнил ни одной проверки";
-        commandResponse.ReplyKeyboardMarkup = _replyKeyboardMarkup;
+        var years = (DateTime.Now.Year - user.Birthday.Year);
+
+        var mess = $"🥷*ФИО*: {user.LastName} {user.FirstName} {user.MidName}\n";
+        mess+= $"💰*Тариф*:";        
+        if (user.Tariff == Tariff.Light) mess += " Лайт";
+        else if (user.Tariff == Tariff.Standart) mess += " Стандарт";
+        else if (user.Tariff == Tariff.Max) mess += " Максимум";
+        mess += $"\n📆*День рождения*: {user.Birthday:dd.MM.yyyy}\n";
+        mess += $"🍰*Возраст*: {years}\n";
+        mess += $"🍕*Вес*: {user.Weight} кг\n";
+        mess += $"🚏*Рост*: {user.Height} см\n";
+        
+
+        var commandResponse = new CommandResponse
+        {
+            TextMessage = mess,
+            ParseMode = ParseMode.Markdown,
+            ReplyKeyboardMarkup = _replyKeyboardMarkup
+        };
         return commandResponse;
     }
 
-    private async Task<CommandResponse> CheckCounterAgent(string message)
+
+    private async Task<CommandResponse> HandleMessageCommandAsync(string textMessage, User user)
     {
-        var rep = new Reporter();
-        var commandResponse = new CommandResponse();
-        if (string.IsNullOrEmpty(message))
-        {
-            commandResponse.TextMessage = "Вы ничего не ввели";
-            commandResponse.ReplyKeyboardMarkup = _replyKeyboardMarkup;
-            return commandResponse;
-        }
+        _lastCommands.TryRemove(user.ChatId.Value, out _);
+        using var userRep = new UserRepository();
 
-        if (message.Length < 10 || message.Length > 13)
+        var tariff = textMessage switch
         {
-            commandResponse.TextMessage = "Вы ввели неправильный ИНН/ОГРН";
-            commandResponse.ReplyKeyboardMarkup = _replyKeyboardMarkup;
-            return commandResponse;
-        }
+            _ when textMessage.Contains("Lite") => Tariff.Light,
+            _ when textMessage.Contains("Standart") => Tariff.Standart,
+            _ when textMessage.Contains("Max") => Tariff.Max,
+            _ when textMessage.Contains("All") => Tariff.All,
+            _ => Tariff.None
+        };
+        var chatIds = await userRep.GetChatIdsByTariff(tariff);
 
-        return await rep.GetResultChecking(message);
+        return new CommandResponse
+        {
+            TextMessage = string.Join(" ",textMessage.Split(" ").Skip(1)),
+            ReplyKeyboardMarkup = _replyKeyboardMarkup,
+            ChatIds = chatIds
+        };
     }
+
 }

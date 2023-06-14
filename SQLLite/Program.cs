@@ -1,20 +1,21 @@
-﻿using scoring_counter_agent_bot;
-using scoring_counter_agent_bot.DB.Entity;
-using scoring_counter_agent_bot.DB.Repository;
-using scoring_counter_agent_bot.Handlers;
+﻿using betabotLightness.DB.Entity;
+using betabotLightness.DB.Repository;
+using betabotLightness.Handlers;
+using betabotLightness.Models;
+using System.Linq;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InputFiles;
-using User = scoring_counter_agent_bot.DB.Entity.User;
+using User = betabotLightness.DB.Entity.User;
 
 /*
  * Реализация телеграмм-бота
  * с обработкой авторизации и бана
  */
-var botClient = new TelegramBotClient("5692922554:AAGBumgwJ9N0ODByxcwo_4fuz3y-rCb_RPc");
+var botClient = new TelegramBotClient("6007637356:AAGyFV6InyTCY5wGDTI207T1I7ttqOHIgus");
 
 using var cts = new CancellationTokenSource();
 
@@ -46,15 +47,39 @@ async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, Cancel
 {
     if (update.Message is not { } message)
         return;
-
-    if (message.Text is not { } messageText)
-        return;
-
     var chatId = message.Chat.Id;
+    var messageText = message.Text;
+    if (message.Photo != null)
+        return;
+    /*    if (message.Photo == null)
+            return;
+
+        var hashSet = new HashSet<string>();
+        foreach(var photo in message.Photo)
+        {
+            botClient.SendMediaGroupAsync
+            var fileInfo = await botClient.GetFileAsync(photo.FileId);
+            if (!hashSet.Contains(photo.FileId))
+            {
+                hashSet.Add(photo.FileId);
+            }
+        }
+        if (!hashSet.Any())
+            return;
+
+
+        var list = new List<IAlbumInputMedia>();
+        foreach (var fileId in hashSet)
+        {
+            list.Add(new InputMediaPhoto(new InputMedia(fileId)));
+        }
+        await botClient.SendMediaGroupAsync(chatId, list);
+        return;*/
+
 
     Console.WriteLine($"Received a '{messageText}' message in chat {chatId}.");
 
-    using var rep = new Repository();
+    using var rep = new UserRepository();
 
     var user = await rep.GetUserByChatIdAsync(chatId);
 
@@ -79,7 +104,7 @@ async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, Cancel
         if (message.Text.ToLower() == "/start")
         {
             await botClient.SendTextMessageAsync(message.Chat,
-                "Здравствуйте! Это бот для проверки контрагентов. Введите свой токен для авторизации");
+                "Здравствуйте! Это бот проекта \"Лёгкость\". Введите свой токен для авторизации");
             return;
         }
 
@@ -93,32 +118,13 @@ async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, Cancel
             }
             else
             {
-                var hacker = await rep.GetHackerByChatIdAsync(chatId);
-                if (hacker == null)
-                {
-                    hacker = new BruteForces { ChatId = chatId, Counter = 0 };
-                    await rep.InsertHackerAsync(hacker);
-                }
 
-                hacker.Counter++;
-                await rep.IncreaseByOneCounterByChatId(chatId, hacker.Counter);
-                if (hacker.Counter < 10)
+                var commandResponse = new CommandResponse
                 {
-                    var commandResponse = new CommandResponse
-                    {
-                        TextMessage =
-                            "Извините, Вас ещё нет в списке пользователей. Свяжитесь с администратором и пришлите Ваш токен"
-                    };
-                    await SendMessage(chatId, commandResponse, cancellationToken);
-                }
-                else
-                {
-                    var commandResponse = new CommandResponse
-                    {
-                        TextMessage = "Вы забанены"
-                    };
-                    await SendMessage(chatId, commandResponse, cancellationToken);
-                }
+                    TextMessage =
+                    "Извините, Вас ещё нет в списке пользователей. Свяжитесь с администратором и пришлите Ваш токен"
+                };
+                await SendMessage(chatId, commandResponse, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -147,48 +153,58 @@ Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, 
 
 async Task<CommandResponse> HandleAuthorizeUser(string messageText, User user)
 {
-    switch (user.AdminRights)
+    switch (user.Role)
     {
-        case false:
-            //throw new NotImplementedException();
+        case betabotLightness.Models.Enums.Role.Client:
             return await userHandler.HandleCommandAsync(messageText, user);
-            break;
-        case true:
+        case betabotLightness.Models.Enums.Role.Admin:
             return await adminHandler.HandleCommandAsync(messageText, user);
-            break;
+        case betabotLightness.Models.Enums.Role.None:
+        default:
+            throw new NotImplementedException();
     }
 }
 
 async Task<CommandResponse> HandleUnauthorizeUser(User user, long chatId)
 {
-    switch (user.AdminRights)
+    switch (user.Role)
     {
-        case false:
+        case betabotLightness.Models.Enums.Role.Client:
             return await userHandler.AuthorizeUser(chatId, user);
-            //throw new NotImplementedException();
-            break;
-        case true:
+        case betabotLightness.Models.Enums.Role.Admin:
             return await adminHandler.AuthorizeUser(chatId, user);
-            break;
+        case betabotLightness.Models.Enums.Role.None:
+        default:
+            throw new NotImplementedException();
     }
 }
 
 
 async Task SendMessage(long chatId, CommandResponse commandResponse, CancellationToken cancellationToken)
 {
-    if (commandResponse.Payload != null && commandResponse.Payload.Any())
-    {
-        using var stream = new MemoryStream(commandResponse.Payload);
-        var doc = new InputOnlineFile(stream, "GonReport.html");
-        await botClient.SendDocumentAsync(
-            chatId,
-            doc,
-            parseMode: commandResponse.ParseMode,
-            cancellationToken: cancellationToken
-        );
-    }
+    /*    if (commandResponse.Payload != null && commandResponse.Payload.Any())
+        {
+            await botClient.SendDocumentAsync(
+                chatId,
+                doc,
+                parseMode: commandResponse.ParseMode,
+                cancellationToken: cancellationToken
+            );
+        }*/
 
-    if (commandResponse.ReplyKeyboardMarkup != null)
+
+    if (commandResponse.ChatIds != null && commandResponse.ChatIds.Any())
+    {
+        foreach (var chatIdClient in commandResponse.ChatIds)
+        {
+            await botClient.SendTextMessageAsync(
+          chatIdClient,
+          commandResponse.TextMessage,
+          commandResponse.ParseMode,
+          cancellationToken: cancellationToken);
+        }
+    }
+    else if (commandResponse.ReplyKeyboardMarkup != null)
         await botClient.SendTextMessageAsync(
             chatId,
             parseMode: commandResponse.ParseMode,
