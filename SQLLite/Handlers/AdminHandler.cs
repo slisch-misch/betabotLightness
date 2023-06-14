@@ -198,18 +198,12 @@ internal class AdminHandler
         using var userRep = new UserRepository();
 
         var user = await userRep.GetUserByNamesAsync(fullName[1], fullName[0], midName);
-        if(user == null)
-        {
-
-        }
+        
 
         var years = (DateTime.Now.Year - user.Birthday.Year);
 
         var mess = $"🥷*ФИО*: {user.LastName} {user.FirstName} {user.MidName}\n";
-        mess+= $"💰*Тариф*: {user.Tariff.GetDisplayName()}";        
-        if (user.Tariff == Tariff.Light) mess += " Лайт";
-        else if (user.Tariff == Tariff.Standart) mess += " Стандарт";
-        else if (user.Tariff == Tariff.Max) mess += " Максимум";
+        mess+= $"💰*Тариф*: {user.Tariff.GetDisplayName()}";              
         mess += $"\n📆*День рождения*: {user.Birthday:dd.MM.yyyy}\n";
         mess += $"🍰*Возраст*: {years}\n";
         mess += $"🍕*Вес*: {user.Weight} кг\n";
