@@ -22,7 +22,8 @@ internal class AdminHandler
     private readonly ReplyKeyboardMarkup _replyKeyboardMarkup =
         new(new[]
         {
-            new KeyboardButton[] { "Создать пользователя", "Создать администратора", "Показать карточку пользователя" }
+            new KeyboardButton[] { "Создать пользователя", "Создать администратора"},
+            new KeyboardButton[] { "Показать карточку пользователя"}
         })
         {
             ResizeKeyboard = true
@@ -130,7 +131,7 @@ internal class AdminHandler
             throw new Exception("Введена некорректная дата рождения");
         if (!int.TryParse(personCard[4], out var tariff))
             throw new Exception("Введен некорректный тариф");
-
+        
         using var rep = new UserRepository();
         var generatedToken = Guid.NewGuid().ToString("N");
         var user = new User
